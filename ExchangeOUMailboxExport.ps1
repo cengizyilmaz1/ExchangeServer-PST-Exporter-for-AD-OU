@@ -17,26 +17,22 @@ Start-Transcript -Path $transcriptFile -Append
 $ouPath = "OU=YourOU,DC=domain,DC=com" # OU path
 $targetFolder = "C:\PST_Folder" # Target folder path
 
-# Check if target folder exists
-Write-Host "Checking if target folder exists: $targetFolder"
-if (-not (Test-Path -Path $targetFolder)) {
-    # Create target folder
-    Write-Host "Creating target folder: $targetFolder"
+$ouPath = "OU=fixcloud-test.com,OU=HC-Systems,DC=fixcloud,DC=com,DC=tr"
+$targetFolder = "C:\PSTExports"
+
+if (-not (Test-Path -Path $targetFolder -PathType Container)) {
     New-Item -Path $targetFolder -ItemType Directory
-    Write-Host "Target folder created: $targetFolder"
 }
 
-# Retrieve mailboxes from OU
-Write-Host "Retrieving mailboxes from OU: $ouPath"
 $mailboxes = Get-Mailbox -OrganizationalUnit $ouPath
+
 Write-Host "Retrieved $($mailboxes.Count) mailboxes from OU: $ouPath"
 
-# Export PST files for mailboxes
 $mailboxes | ForEach-Object {
     $mailbox = $_
-    $pstFile = Join-Path -Path $targetFolder -ChildPath ("$($mailbox.Alias).pst")
+    $emailAddress = $mailbox.PrimarySmtpAddress.ToString().Replace("@", ".")
+    $pstFile = Join-Path -Path $targetFolder -ChildPath ("$emailAddress.pst")
     $existingRequest = Get-MailboxExportRequest -Mailbox $mailbox.Identity | Where-Object { ($_.Status -ne "Completed") -and ($_.FilePath -eq $pstFile) }
-
     if (-not $existingRequest) {
         try {
             Write-Host "Starting PST export request for mailbox: $($mailbox.EmailAddresses[0].Address) - $pstFile"
